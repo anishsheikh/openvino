@@ -166,7 +166,7 @@ device_info init_device_info(const cl::Device& device) {
 
     info.max_work_group_size = static_cast<uint64_t>(device.getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>());
 
-    // For some reason idia runtime throws an exception (CL_IALID_KERNEL_ARGS) for WG as follows:
+    // For some reason nvidia runtime throws an exception (CL_IALID_KERNEL_ARGS) for WG as follows:
     // global: < 1 x 32 x 5184 >
     // local: < 1 x 1 x 576 >
     // While local  < 1 x 1 x 36 > works fine
@@ -232,7 +232,7 @@ device_info init_device_info(const cl::Device& device) {
     }
 
     bool device_attr_supported = extensions.find("cl_intel_device_attribute_query") != std::string::npos;
-    bool CL_DEVICE_GFXIP_MAJOR_AMD = extensions.find("cl_nv_device_attribute_query") != std::string::npos;
+    bool nv_device_attr_supported = extensions.find("cl_nv_device_attribute_query") != std::string::npos;
     bool amd_device_attr_supported = extensions.find("cl_amd_device_attribute_query") != std::string::npos;
     if (device_attr_supported) {
         info.gfx_ver = parse_version(device.getInfo<CL_DEVICE_IP_VERSION_INTEL>());
