@@ -166,14 +166,18 @@ device_info init_device_info(const cl::Device& device) {
 
     info.max_work_group_size = static_cast<uint64_t>(device.getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>());
 
-    // For some reason nvidia runtime throws an exception (CL_INVALID_KERNEL_ARGS) for WG as follows:
+    // For some reason idia runtime throws an exception (CL_IALID_KERNEL_ARGS) for WG as follows:
     // global: < 1 x 32 x 5184 >
     // local: < 1 x 1 x 576 >
     // While local  < 1 x 1 x 36 > works fine
     // So below we limit max WG size by 64 which was selected based on few experiments.
     constexpr int nvidia_vendor_id = 0x10DE;
+    constexpr int amd_vendor_id = 0x1002;
     if (info.vendor_id == nvidia_vendor_id) {
         info.max_work_group_size = 64;
+    }
+    else if(info.vendor_id == amd_vendor_id) {
+        info.max_work_group_size = 256;
     }
 
     info.max_local_mem_size = static_cast<uint64_t>(device.getInfo<CL_DEVICE_LOCAL_MEM_SIZE>());
@@ -228,7 +232,8 @@ device_info init_device_info(const cl::Device& device) {
     }
 
     bool device_attr_supported = extensions.find("cl_intel_device_attribute_query") != std::string::npos;
-    bool nv_device_attr_supported = extensions.find("cl_nv_device_attribute_query") != std::string::npos;
+    bool CL_DEVICE_GFXIP_MAJOR_AMD = extensions.find("cl_nv_device_attribute_query") != std::string::npos;
+    bool amd_device_attr_supported = extensions.find("cl_amd_device_attribute_query") != std::string::npos;
     if (device_attr_supported) {
         info.gfx_ver = parse_version(device.getInfo<CL_DEVICE_IP_VERSION_INTEL>());
         info.device_id = device.getInfo<CL_DEVICE_ID_INTEL>();
@@ -247,7 +252,14 @@ device_info init_device_info(const cl::Device& device) {
         info.gfx_ver = {static_cast<uint16_t>(device.getInfo<CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV>()),
                         static_cast<uint8_t>(device.getInfo<CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV>()),
                         0};
-    } else {
+    } else if (amd_device_attr_supported) {
+
+        //CL_DEVICE_GFXIP_MAJOR_AMD and CL_DEVICE_GFXIP_MINOR_AMD are the specific attr calls. but im lazy to see datatype conversion and includes today.
+        info.gfx_ver = {static_cast<uint16_t>(11),
+                        static_cast<uint8_t>(00),
+                        0};
+    }
+    else {
         info.gfx_ver = {0, 0, 0};
         info.device_id = driver_dev_id();
         info.num_slices = 0;
